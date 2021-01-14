@@ -1,5 +1,5 @@
 clean: 
-	rm -rf Image
+	rm -rf Data
 	rm -rf __pycache__
 	rm -rf *.webp
 	rm -rf *.png

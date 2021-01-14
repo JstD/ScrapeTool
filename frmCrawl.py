@@ -21,38 +21,41 @@ import requests
 import shutil
 import os
 
+import re
 
 class STATUS(enum.Enum):
     Ready = 1
     Running = 2
 stt = STATUS.Ready
-def crawl_image(url):
+def crawl_image(url,data_type):
     global stt
-    html_text = requests.get(url).text
+    # html_text = requests.get(url).text
     # html_page = urllib.request.urlopen(url)
-    soup = BeautifulSoup(html_text, 'html.parser')
-    os.system("mkdir Image")
-    for img in soup.find_all('img'):
+    # soup = BeautifulSoup(html_text, 'html.parser')
+    html = str(urllib.request.urlopen(url).read())
+    if url[-1] == '/':
+        url = url[-1]
+    # print(html)
+    links = re.findall(r'http[s]?://[a-zA-Z0-9-\._~/?#@&=]*\.'+data_type, html)
+    os.system("mkdir Data")
+    for link in links:
         if stt == STATUS.Ready:
             exit()
-        link=(img.get('src'))
-        if isinstance(link,str):
-            if link[:4] != 'http':
-                link = url[:-1] + link
-            print(link)
-            os.system("you-get "+str(link)+" -o Image")
+        
+        if link[:4] != 'http':
+            link = url + link
+        print(link)
+        os.system("you-get "+str(link)+" -o Data")
+    stt = STATUS.Ready
+    print("Done!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     exit()
-def process(url):
+def process(url,data_type):
     global stt
-    if url:
-        stt = STATUS.Running
-        crawl_image(url)
-    else:
-        tk.withdraw()
-        messagebox.showwarning("Warning","Please enter URL!!")
+    stt = STATUS.Running
+    crawl_image(url,data_type)
+        
 
 class Ui_MainWindow(object):
-    stt = STATUS.Ready
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.setEnabled(True)
@@ -60,26 +63,35 @@ class Ui_MainWindow(object):
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.lbl1 = QtWidgets.QLabel(self.centralwidget)
-        self.lbl1.setGeometry(QtCore.QRect(100, 80, 331, 20))
+        self.lbl1.setGeometry(QtCore.QRect(90, 80, 331, 20))
         font = QtGui.QFont()
         font.setPointSize(16)
         self.lbl1.setFont(font)
         self.lbl1.setObjectName("lbl1")
 
         self.btnStart = QtWidgets.QPushButton(self.centralwidget)
-        self.btnStart.setGeometry(QtCore.QRect(210, 230, 91, 31))
+        self.btnStart.setGeometry(QtCore.QRect(190, 270, 91, 31))
         self.btnStart.setObjectName("btnStart")
-
         self.btnStart.clicked.connect(self.start)
 
         self.btnStop = QtWidgets.QPushButton(self.centralwidget)
-        self.btnStop.setGeometry(QtCore.QRect(360, 230, 91, 31))
+        self.btnStop.setGeometry(QtCore.QRect(340, 270, 91, 31))
         self.btnStop.setObjectName("btnStop")
         self.btnStop.clicked.connect(self.stop)
 
         self.txtUrl = QtWidgets.QTextEdit(self.centralwidget)
-        self.txtUrl.setGeometry(QtCore.QRect(170, 140, 331, 41))
+        self.txtUrl.setGeometry(QtCore.QRect(150, 120, 331, 41))
         self.txtUrl.setObjectName("txtUrl")
+
+        self.lbl1_2 = QtWidgets.QLabel(self.centralwidget)
+        self.lbl1_2.setGeometry(QtCore.QRect(170, 180, 191, 41))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        self.lbl1_2.setFont(font)
+        self.lbl1_2.setObjectName("lbl1_2")
+        self.txtType = QtWidgets.QTextEdit(self.centralwidget)
+        self.txtType.setGeometry(QtCore.QRect(300, 190, 111, 31))
+        self.txtType.setObjectName("txtType")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 667, 22))
@@ -91,18 +103,34 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
-    def start(self):
-        t = threading.Thread(target=process,args=[self.txtUrl.toPlainText()])
-        t.start()
-    def stop(self):
-        global stt
-        stt = STATUS.Ready
+
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Crawler Tool"))
         self.lbl1.setText(_translate("MainWindow", "Please enter url you want to crawl:"))
         self.btnStart.setText(_translate("MainWindow", "Start"))
         self.btnStop.setText(_translate("MainWindow", "Stop"))
+        self.lbl1_2.setText(_translate("MainWindow", "Data type :"))
+    def start(self):
+        url=self.txtUrl.toPlainText()
+        data_type = self.txtType.toPlainText()
+        if not url:
+            tk.withdraw()
+            messagebox.showwarning("Warning","Please enter URL!!")
+        elif not data_type:
+            tk.withdraw()
+            messagebox.showwarning("Warning","Please enter Data type!!")
+        elif url[:4] != 'http':
+                tk.withdraw()
+                messagebox.showwarning("Warning","Please enter HTTP URL!!")
+        else:
+            if data_type[0] == '.':
+                data_type = data_type[1:]
+            t = threading.Thread(target=process,args=[url,data_type])
+            t.start()
+    def stop(self):
+        global stt
+        stt = STATUS.Ready
 
     
 if __name__ == "__main__":

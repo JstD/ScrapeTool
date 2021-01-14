@@ -9,40 +9,80 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from scrape import crawl_image
 import tkinter
 tk = tkinter.Tk()
 from tkinter import messagebox
+import threading
+import enum
+
+from bs4 import BeautifulSoup
+import urllib.request
+import requests
+import shutil
+import os
+
+
+class STATUS(enum.Enum):
+    Ready = 1
+    Running = 2
+stt = STATUS.Ready
+def crawl_image(url):
+    global stt
+    html_text = requests.get(url).text
+    # html_page = urllib.request.urlopen(url)
+    soup = BeautifulSoup(html_text, 'html.parser')
+    os.system("mkdir Image")
+    for img in soup.find_all('img'):
+        if stt == STATUS.Ready:
+            exit()
+        link=(img.get('src'))
+        if isinstance(link,str):
+            if link[:4] != 'http':
+                link = url[:-1] + link
+            print(link)
+            os.system("you-get "+str(link)+" -o Image")
+    exit()
+def process(url):
+    global stt
+    if url:
+        stt = STATUS.Running
+        crawl_image(url)
+    else:
+        tk.withdraw()
+        messagebox.showwarning("Warning","Please enter URL!!")
 
 class Ui_MainWindow(object):
+    stt = STATUS.Ready
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(764, 424)
+        MainWindow.setEnabled(True)
+        MainWindow.resize(667, 403)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
-
-        self.label = QtWidgets.QLabel(self.centralwidget)
-        self.label.setGeometry(QtCore.QRect(150, 100, 371, 61))
+        self.lbl1 = QtWidgets.QLabel(self.centralwidget)
+        self.lbl1.setGeometry(QtCore.QRect(100, 80, 331, 20))
         font = QtGui.QFont()
-        font.setPointSize(14)
-        self.label.setFont(font)
-        self.label.setObjectName("label")
-
-        self.txtUrl = QtWidgets.QTextEdit(self.centralwidget)
-        self.txtUrl.setGeometry(QtCore.QRect(250, 170, 291, 41))
-        self.txtUrl.setObjectName("txtUrl")
+        font.setPointSize(16)
+        self.lbl1.setFont(font)
+        self.lbl1.setObjectName("lbl1")
 
         self.btnStart = QtWidgets.QPushButton(self.centralwidget)
-        self.btnStart.setGeometry(QtCore.QRect(310, 230, 111, 41))
-        font = QtGui.QFont()
-        font.setPointSize(14)
-        self.btnStart.setFont(font)
+        self.btnStart.setGeometry(QtCore.QRect(210, 230, 91, 31))
         self.btnStart.setObjectName("btnStart")
-        self.btnStart.clicked.connect(self.process)
-        
+
+        self.btnStart.clicked.connect(self.start)
+
+        self.btnStop = QtWidgets.QPushButton(self.centralwidget)
+        self.btnStop.setGeometry(QtCore.QRect(360, 230, 91, 31))
+        self.btnStop.setObjectName("btnStop")
+        self.btnStop.clicked.connect(self.stop)
+
+        self.txtUrl = QtWidgets.QTextEdit(self.centralwidget)
+        self.txtUrl.setGeometry(QtCore.QRect(170, 140, 331, 41))
+        self.txtUrl.setObjectName("txtUrl")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 764, 26))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 667, 22))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -51,21 +91,20 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
-    def process(self):
-        url = self.txtUrl.toPlainText()
-        _translate = QtCore.QCoreApplication.translate
-        self.btnStart.setText(_translate("MainWindow", "Please wait ..."))
-        if url:
-            crawl_image(url)
-        else:
-            messagebox.showwarning("Warning","Please enter url")
+    def start(self):
+        t = threading.Thread(target=process,args=[self.txtUrl.toPlainText()])
+        t.start()
+    def stop(self):
+        global stt
+        stt = STATUS.Ready
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.label.setText(_translate("MainWindow", "Please enter url you want to crawl:"))
+        self.lbl1.setText(_translate("MainWindow", "Please enter url you want to crawl:"))
         self.btnStart.setText(_translate("MainWindow", "Start"))
+        self.btnStop.setText(_translate("MainWindow", "Stop"))
 
-
+    
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)

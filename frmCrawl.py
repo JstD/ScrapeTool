@@ -51,7 +51,7 @@ def giv_url(url):
 
 def crawl(url,data_type):
     global stt
-    global count
+    # global count
     # print(count, url)
     try:  
         html = str(urllib.request.urlopen(url).read())

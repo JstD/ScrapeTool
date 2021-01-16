@@ -14,7 +14,6 @@ tk = tkinter.Tk()
 from tkinter import messagebox
 import threading
 import enum
-
 from bs4 import BeautifulSoup
 import urllib.request
 import requests
@@ -22,38 +21,67 @@ import shutil
 import os
 
 import re
-
 class STATUS(enum.Enum):
     Ready = 1
     Running = 2
 stt = STATUS.Ready
-def crawl_image(url,data_type):
+# count = 0
+def giv_url(url):
+    # print(url)
+    try:
+        html_text = requests.get(url).text
+    except:
+        return
+    soup = BeautifulSoup(html_text, 'lxml')
+    sub_url =[url]
+    for link in soup.find_all('a'):
+        sub_link = link.get('href')
+        if sub_link:
+            if sub_link[:4] != 'http':
+                if sub_link[:2] == '//':
+                    sub_link = sub_link[1:]
+                if sub_link[0] != '/':
+                    sub_link = '/' + sub_link
+                # print(link)
+                sub_link = url + sub_link
+            if not sub_link in sub_url:
+                sub_url.append(sub_link)
+            print(sub_link)
+    return sub_url
+
+def crawl(url,data_type):
     global stt
-    # html_text = requests.get(url).text
-    # html_page = urllib.request.urlopen(url)
-    # soup = BeautifulSoup(html_text, 'html.parser')
-    html = str(urllib.request.urlopen(url).read())
-    if url[-1] == '/':
-        url = url[-1]
-    # print(html)
+    global count
+    # print(count, url)
+    try:  
+        html = str(urllib.request.urlopen(url).read())
+    except:
+        return
     links = re.findall(r'http[s]?://[a-zA-Z0-9-\._~/?#@&=]*\.'+data_type, html)
-    os.system("mkdir Data")
     for link in links:
         if stt == STATUS.Ready:
-            exit()
-        
-        if link[:4] != 'http':
-            link = url + link
-        print(link)
-        os.system("you-get "+str(link)+" -o Data")
-    stt = STATUS.Ready
-    print("Done!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    exit()
+            break
+        os.system("you-get "+str(link)+" -a -o Data")
+
+    # count +=1
 def process(url,data_type):
     global stt
+    # print(url)
     stt = STATUS.Running
-    crawl_image(url,data_type)
-        
+    if url[-1] == '/':
+        url = url[:-1]
+    os.system("mkdir Data")
+    lst_url = giv_url(url)
+    print(lst_url)
+    
+    for link in lst_url:
+        for tp in data_type:
+            print('------------------'+ tp +'-------------------')
+            if stt == STATUS.Ready:
+                break
+            crawl(link,tp)
+        print("Done!!")
+    stt = STATUS.Ready
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -113,6 +141,7 @@ class Ui_MainWindow(object):
         self.lbl1_2.setText(_translate("MainWindow", "Data type :"))
     def start(self):
         url=self.txtUrl.toPlainText()
+        # print(url)
         data_type = self.txtType.toPlainText()
         if not url:
             tk.withdraw()
@@ -124,8 +153,10 @@ class Ui_MainWindow(object):
                 tk.withdraw()
                 messagebox.showwarning("Warning","Please enter HTTP URL!!")
         else:
-            if data_type[0] == '.':
-                data_type = data_type[1:]
+            data_type = data_type.split(' ')
+            for i in range(len(data_type)):
+                if data_type[i][0] == '.':
+                    data_type[i] = data_type[i][1:]
             t = threading.Thread(target=process,args=[url,data_type])
             t.start()
     def stop(self):
